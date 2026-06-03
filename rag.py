@@ -50,9 +50,9 @@ def ask_question(query):
     context = build_context(docs)
 
     prompt = f"""
-You are a helpful PDF assistant.
+You are an expert AI document assistant.
 
-Answer ONLY using the provided context.
+Analayze the provided context carefully to answer the user's question
 
 If the answer is not found in the context,
 reply:

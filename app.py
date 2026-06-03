@@ -5,21 +5,42 @@ from vector_store import create_vector_store, save_vector_store
 from rag import ask_question
 
 
-st.title("📑 PDF analyser and query resolver  (RAG)")
+# -------------------
+# Page Config
+# -------------------
 
+st.set_page_config(
+    page_title="PDF RAG Assistant",
+    page_icon="📑",
+    layout="centered"
+)
+
+st.title("📑 PDF Analyser and Query Resolver (RAG)")
 st.write("Upload a PDF and ask questions about it.")
+
+
+# -------------------
+# Session State
+# -------------------
+
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 
 # -------------------
 # Upload PDF
 # -------------------
 
-uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
+uploaded_file = st.file_uploader(
+    "Upload PDF",
+    type=["pdf"]
+)
 
 
 # -------------------
 # Process PDF
 # -------------------
+
 if uploaded_file:
 
     if st.button("Process PDF"):
@@ -38,8 +59,10 @@ if uploaded_file:
 # -------------------
 # Ask Question
 # -------------------
-query = st.text_input("Enter your question")
 
+query = st.text_input(
+    "Enter your question"
+)
 
 if st.button("Get Answer"):
 
@@ -55,6 +78,53 @@ if st.button("Get Answer"):
 
             result = ask_question(query)
 
-        st.subheader("Answer")
-        st.write(result["answer"])
+        # Save conversation
+        st.session_state.history.append(
+            {
+                "question": query,
+                "answer": result["answer"],
+                "sources": result["sources"]
+            }
+        )
 
+
+# -------------------
+# Conversation History
+# -------------------
+
+if st.session_state.history:
+
+    st.divider()
+    st.subheader("Conversation History")
+
+    for i, item in enumerate(
+        reversed(st.session_state.history),
+        start=1
+    ):
+
+        with st.container(border=True):
+
+            st.markdown(
+                f"### Question {len(st.session_state.history) - i + 1}"
+            )
+
+            st.write(item["question"])
+
+            st.markdown("### Answer")
+
+            st.write(item["answer"])
+
+            st.markdown("### Source Pages")
+
+            if item["sources"]:
+
+                pages = sorted(set(item["sources"]))
+
+                badges = " ".join(
+                    [f"`Page {page}`" for page in pages]
+                )
+
+                st.markdown(badges)
+
+            else:
+                st.info("No source pages available.")
