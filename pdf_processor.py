@@ -18,11 +18,12 @@ def extract_pdf_text(pdf_file):
                 Document(
                     page_content = text,
                     metadata = {
-                        "page" :page_num
+                        "page" :page_num,
+                        "source" : pdf_file.name
                     }
                 )
             )
-            
+
     return documents
 
 def chunk_documents(documents):
@@ -37,4 +38,4 @@ def chunk_documents(documents):
     
     return chunks
 
-
+    

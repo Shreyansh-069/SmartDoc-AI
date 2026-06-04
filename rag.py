@@ -74,7 +74,7 @@ Answer:
 
     source_pages = sorted(
         set(
-            doc.metadata.get("page")
+            f"{doc.metadata.get('source')}(page {doc.metadata.get('page')})"
             for doc in docs
         )
     )

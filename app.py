@@ -5,126 +5,133 @@ from vector_store import create_vector_store, save_vector_store
 from rag import ask_question
 
 
-# -------------------
-# Page Config
-# -------------------
-
 st.set_page_config(
-    page_title="PDF RAG Assistant",
-    page_icon="📑",
-    layout="centered"
+    page_title="SmartDoc-AI",
+    page_icon="📄",
+    layout="wide"
 )
 
-st.title("📑 PDF Analyser and Query Resolver (RAG)")
-st.write("Upload a PDF and ask questions about it.")
+# Header
+st.title("📄 SmartDoc-AI")
+st.caption("AI-Powered PDF Question Answering System using RAG")
 
+st.markdown("---")
 
-# -------------------
-# Session State
-# -------------------
+# Sidebar
+with st.sidebar:
+    st.header("About")
+    st.write(
+        """
+        Upload one or more PDF files, process them,
+        and ask questions about their contents using
+        Retrieval-Augmented Generation (RAG).
+        """
+    )
 
-if "history" not in st.session_state:
-    st.session_state.history = []
+    st.info(
+        "Workflow:\n"
+        "PDFs → Chunks → Embeddings → FAISS → Llama3"
+    )
 
+# Main Layout
+col1, col2 = st.columns([1, 1])
 
-# -------------------
-# Upload PDF
-# -------------------
+# -----------------------------
+# PDF Upload Section
+# -----------------------------
+with col1:
 
-uploaded_file = st.file_uploader(
-    "Upload PDF",
-    type=["pdf"]
-)
+    st.subheader("📂 Upload Documents")
 
+    uploaded_files = st.file_uploader(
+        "Choose PDF file(s)",
+        type=["pdf"],
+        accept_multiple_files=True
+    )
 
-# -------------------
-# Process PDF
-# -------------------
+    if uploaded_files:
 
-if uploaded_file:
+        st.success(f"{len(uploaded_files)} PDF(s) uploaded")
 
-    if st.button("Process PDF"):
+        st.write("### Uploaded Files")
+        for pdf in uploaded_files:
+            st.write(f"• {pdf.name}")
 
-        with st.spinner("Processing PDF..."):
+        if st.button("⚙️ Process PDFs", use_container_width=True):
 
-            docs = extract_pdf_text(uploaded_file)
-            chunks = chunk_documents(docs)
+            try:
+                with st.spinner("Processing PDFs..."):
 
-            vector_store = create_vector_store(chunks)
-            save_vector_store(vector_store)
+                    all_documents = []
 
-        st.success("PDF processed successfully!")
+                    for pdf in uploaded_files:
+                        docs = extract_pdf_text(pdf)
 
+                        # extract_pdf_text should return a list of Documents
+                        all_documents.extend(docs)
 
-# -------------------
-# Ask Question
-# -------------------
+                    chunks = chunk_documents(all_documents)
 
-query = st.text_input(
-    "Enter your question"
-)
+                    vector_store = create_vector_store(chunks)
 
-if st.button("Get Answer"):
+                    save_vector_store(vector_store)
 
-    if not uploaded_file:
-        st.warning("Please upload a PDF first.")
-
-    elif not query:
-        st.warning("Please enter a question.")
-
-    else:
-
-        with st.spinner("Thinking..."):
-
-            result = ask_question(query)
-
-        # Save conversation
-        st.session_state.history.append(
-            {
-                "question": query,
-                "answer": result["answer"],
-                "sources": result["sources"]
-            }
-        )
-
-
-# -------------------
-# Conversation History
-# -------------------
-
-if st.session_state.history:
-
-    st.divider()
-    st.subheader("Conversation History")
-
-    for i, item in enumerate(
-        reversed(st.session_state.history),
-        start=1
-    ):
-
-        with st.container(border=True):
-
-            st.markdown(
-                f"### Question {len(st.session_state.history) - i + 1}"
-            )
-
-            st.write(item["question"])
-
-            st.markdown("### Answer")
-
-            st.write(item["answer"])
-
-            st.markdown("### Source Pages")
-
-            if item["sources"]:
-
-                pages = sorted(set(item["sources"]))
-
-                badges = " ".join(
-                    [f"`Page {page}`" for page in pages]
+                st.success(
+                    f"Successfully processed {len(uploaded_files)} PDF(s)!"
                 )
 
-                st.markdown(badges)
+            except Exception as e:
+                st.error(f"Error while processing PDFs: {e}")
 
-            else:
-                st.info("No source pages available.")
+# -----------------------------
+# Question Answering Section
+# -----------------------------
+with col2:
+
+    st.subheader("💬 Ask Questions")
+
+    query = st.text_input(
+        "Enter your question"
+    )
+
+    if st.button("🚀 Get Answer", use_container_width=True):
+
+        if not query:
+            st.warning("Please enter a question.")
+
+        else:
+
+            try:
+                with st.spinner("Generating answer..."):
+
+                    result = ask_question(query)
+
+                st.success("Answer Generated")
+
+                st.markdown("### 📝 Answer")
+                st.write(result["answer"])
+
+                st.markdown("### 📚 Source Pages")
+
+                sources = result["sources"]
+
+                formatted_sources = []
+                for source in sources:
+                    if "(page" in source:
+                        pdf_name, page = source.split("(page")
+                        page = page.replace(")", "").strip()
+
+                        formatted_sources.append(
+                        f"📄 {pdf_name.strip()} | Page {page}\n"
+                        )
+
+                st.info("\n".join(formatted_sources))
+
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+st.markdown("---")
+
+st.caption(
+    "Built with Streamlit • LangChain • FAISS • BGE Embeddings • Llama3"
+)
